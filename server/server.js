@@ -4,41 +4,54 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 
 const app = express();
+app.use(cors());
+
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", // Frontend URL
+        origin: "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
 
-app.use(cors());
-app.get("/", (req, res) => {
-    res.send("Scribble Game Server is running!");
-});
+let rooms = {};
 
-// WebSocket logic
 io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    console.log("User connected:", socket.id);
 
-    // Handle joining room
-    socket.on("join_room", (room) => {
-        socket.join(room);
-        console.log(`User ${socket.id} joined room ${room}`);
-        io.to(room).emit("message", `${socket.id} has joined the game`);
+    socket.on("create-room", ({ roomId, username }) => {
+        rooms[roomId] = { players: [username], submissions: [], timerStarted: false };
+        socket.join(roomId);
+        io.to(roomId).emit("update-players", rooms[roomId].players);
     });
 
-    // Handle drawing data
-    socket.on("draw", (data) => {
-        socket.to(data.room).emit("draw", data);
+    socket.on("join-room", ({ roomId, username }) => {
+        if (rooms[roomId]) {
+            rooms[roomId].players.push(username);
+            socket.join(roomId);
+            io.to(roomId).emit("update-players", rooms[roomId].players);
+        }
     });
 
-    // Handle disconnection
+    socket.on("submit-chain", ({ roomId, username, chain }) => {
+        rooms[roomId].submissions.push({ username, chain });
+
+        if (!rooms[roomId].timerStarted) {
+            rooms[roomId].timerStarted = true;
+            io.to(roomId).emit("start-timer", 30);
+            setTimeout(() => io.to(roomId).emit("game-over"), 30000);
+        }
+    });
+
+    socket.on("get-results", ({ roomId }) => {
+        io.to(roomId).emit("results", rooms[roomId].submissions);
+    });
+
     socket.on("disconnect", () => {
-        console.log(`User disconnected: ${socket.id}`);
+        console.log("User disconnected:", socket.id);
     });
 });
 
 server.listen(5001, () => {
-    console.log("Server running on port 5000");
+    console.log("Server running on port 5001");
 });

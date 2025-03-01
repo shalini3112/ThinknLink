@@ -1,34 +1,22 @@
-import React, { useState } from "react";
-import io from "socket.io-client";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./components/Home";
 import Game from "./components/Game";
+import Results from "./components/Results";
+import { io } from "socket.io-client";
 
-const socket = io.connect("http://localhost:5001");
+const socket = io("http://localhost:5001");
 
-function App() {
-    const [room, setRoom] = useState("");
-    const [joined, setJoined] = useState(false);
-
-    const joinRoom = () => {
-        if (room !== "") {
-            socket.emit("join_room", room);
-            setJoined(true);
-        }
-    };
-
+const App = () => {
     return (
-        <div>
-            {!joined ? (
-                <div>
-                    <h2>Join a Room</h2>
-                    <input type="text" placeholder="Room ID" onChange={(e) => setRoom(e.target.value)} />
-                    <button onClick={joinRoom}>Join</button>
-                </div>
-            ) : (
-                <Game socket={socket} room={room} />
-            )}
-        </div>
+        
+            <Routes>
+                <Route path="/" element={<Home socket={socket} />} />
+                <Route path="/game/:roomId" element={<Game socket={socket} />} />
+                <Route path="/results/:roomId" element={<Results socket={socket} />} />
+            </Routes>
+        
     );
-}
+};
 
 export default App;
-
