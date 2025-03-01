@@ -21,6 +21,14 @@ const Game = ({ socket }) => {
             setPlayers(playerList);
         });
 
+        const handleBackButton = () => {
+            socket.disconnect();  // Disconnect from the server
+            navigate("/"); // Redirect to home page after disconnect
+        };
+
+        window.addEventListener("popstate", handleBackButton);
+
+
         socket.on("start-timer", (time) => {
             setTimeLeft(time);
             setTimer(setInterval(() => setTimeLeft((t) => t - 1), 1000));
@@ -34,9 +42,13 @@ const Game = ({ socket }) => {
         return () => {
             socket.off("update-players");
             socket.off("start-timer");
+            
+            window.removeEventListener("popstate", handleBackButton);
+            
+
             socket.off("game-over");
         };
-    }, [socket, roomId, username]);
+    }, [socket, roomId, username, navigate]);
 
     const addWord = () => {
         if (!newWord.trim()) return;

@@ -15,9 +15,18 @@ const Home = ({ socket }) => {
     };
 
     const joinRoom = () => {
-        if (!username || !roomId) return alert("Enter name and room ID!");
-        socket.emit("join-room", { roomId, username });
-        navigate(`/game/${roomId}?username=${username}`);
+        if (!username || !roomId) {
+            alert("Enter name and room ID!");
+            return;
+        }
+    
+        socket.emit("join-room", { roomId, username }, (response) => {
+            if (response && !response.success) {
+                alert(response.message);
+                return;
+            }
+            navigate(`/game/${roomId}?username=${username}`);
+        });
     };
 
     return (
