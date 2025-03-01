@@ -19,12 +19,11 @@ let rooms = {};
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    // Create a new room
     socket.on("create-room", ({ roomId, username }) => {
         rooms[roomId] = { 
-            players: {},  // Track players by socket ID
-            submissions: [],
-            timerStarted: false
+            players: {}, 
+            submissions: [], 
+            timerStarted: false 
         };
 
         rooms[roomId].players[socket.id] = username;
@@ -33,7 +32,6 @@ io.on("connection", (socket) => {
         io.to(roomId).emit("update-players", Object.values(rooms[roomId].players));
     });
 
-    // Join an existing room
     socket.on("join-room", ({ roomId, username }, callback) => {
         if (!rooms[roomId]) {
             if (typeof callback === "function") {
@@ -42,7 +40,6 @@ io.on("connection", (socket) => {
             return;
         }
 
-        // Remove old instance if player reconnects with the same name
         Object.keys(rooms[roomId].players).forEach((id) => {
             if (rooms[roomId].players[id] === username) {
                 delete rooms[roomId].players[id];
@@ -59,12 +56,10 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Leave room manually (e.g., pressing back button)
-    socket.on("leave-room", ({ roomId }) => {
+    socket.on("leave-room", ({ roomId, username }) => {
         if (rooms[roomId] && rooms[roomId].players[socket.id]) {
             delete rooms[roomId].players[socket.id];
 
-            // If the room is empty, delete it
             if (Object.keys(rooms[roomId].players).length === 0) {
                 delete rooms[roomId];
             } else {
@@ -73,7 +68,6 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Submit a word chain
     socket.on("submit-chain", ({ roomId, username, chain }) => {
         if (!rooms[roomId]) return;
 
@@ -86,23 +80,19 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Get results
     socket.on("get-results", ({ roomId }) => {
         if (rooms[roomId]) {
             io.to(roomId).emit("results", rooms[roomId].submissions);
         }
     });
 
-    // Handle player disconnection
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
 
-        // Remove player from any room they were in
         for (const roomId in rooms) {
             if (rooms[roomId].players[socket.id]) {
                 delete rooms[roomId].players[socket.id];
 
-                // If the room is empty, delete it
                 if (Object.keys(rooms[roomId].players).length === 0) {
                     delete rooms[roomId];
                 } else {

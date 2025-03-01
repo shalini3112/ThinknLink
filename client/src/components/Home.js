@@ -13,8 +13,10 @@ const Home = ({ socket }) => {
         socket.emit("create-room", { roomId: newRoomId, username });
         navigate(`/game/${newRoomId}?username=${username}`);
     };
+    window.history.replaceState(null, "", "/"); 
 
     const joinRoom = () => {
+
         if (!username || !roomId) {
             alert("Enter name and room ID!");
             return;

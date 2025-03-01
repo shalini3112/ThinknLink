@@ -15,40 +15,55 @@ const Game = ({ socket }) => {
     const [timeLeft, setTimeLeft] = useState(30);
 
     useEffect(() => {
-        socket.emit("join-room", { roomId, username });
 
+        window.history.replaceState(null, "", "/"); 
+        // Join room when the component mounts
+        socket.emit("join-room", { roomId, username 
+        });
+
+        // Listen for updated player list from the server
         socket.on("update-players", (playerList) => {
             setPlayers(playerList);
         });
 
-        const handleBackButton = () => {
-            socket.disconnect();  // Disconnect from the server
-            navigate("/"); // Redirect to home page after disconnect
-        };
-
-        window.addEventListener("popstate", handleBackButton);
-
-
+        // Handle timer start from server
         socket.on("start-timer", (time) => {
             setTimeLeft(time);
             setTimer(setInterval(() => setTimeLeft((t) => t - 1), 1000));
         });
 
+        // Handle game over scenario
         socket.on("game-over", () => {
             clearInterval(timer);
             navigate(`/results/${roomId}`);
         });
 
+        // Handle browser back button (popstate event)
+        const handleBackButton = () => {
+            socket.emit("leave-room", { roomId, username }); // Send leave-room event
+            socket.disconnect(); // Disconnect from the server
+            navigate("/"); // Redirect to the home page after disconnect
+            
+        };
+
+
+
+        window.addEventListener("popstate", handleBackButton);
+
+        // Cleanup the event listeners when the component unmounts
         return () => {
             socket.off("update-players");
             socket.off("start-timer");
-            
-            window.removeEventListener("popstate", handleBackButton);
-            
-
             socket.off("game-over");
+
+            // Remove back button event listener
+            window.removeEventListener("popstate", handleBackButton);
+
+            // Emit leave-room event to server if the user navigates away manually
+            socket.emit("leave-room", { roomId, username });
+            // socket.disconnect();
         };
-    }, [socket, roomId, username, navigate]);
+    }, [socket, roomId, username, navigate, timer]);
 
     const addWord = () => {
         if (!newWord.trim()) return;
