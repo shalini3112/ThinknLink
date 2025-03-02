@@ -1,0 +1,24 @@
+.title-container {
+    text-align: center;
+    border-bottom: 3px solid black;
+    padding-bottom: 10px;
+    width: 100%;
+    color: aqua;
+}
+.name-input {
+    width: 250px;
+    padding: 10px;
+    font-size: 16px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    outline: none;
+    text-align: center;
+    display: block;
+    margin: 10px auto;
+    transition: border-color 0.3s ease-in-out;
+}
+
+.name-input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}

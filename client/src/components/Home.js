@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
-
+import "./Home.css";
 const Home = ({ socket }) => {
     const [username, setUsername] = useState("");
     const [roomId, setRoomId] = useState("");
@@ -33,9 +33,12 @@ const Home = ({ socket }) => {
 
     return (
         <div style={{ textAlign: "center", marginTop: "50px" }}>
-            <h1>ThinkNLink</h1>
+            <div className="title-container">
+               <h1>ThinkNLink</h1>
+            </div>
             <input 
                 type="text" 
+                className="name-input"
                 placeholder="Enter your name" 
                 value={username} 
                 onChange={(e) => setUsername(e.target.value)}
