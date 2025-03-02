@@ -14,7 +14,25 @@ const io = new Server(server, {
     }
 });
 
+const wordList = [
+    "Dog", "Car", "Tree", "Book", "Phone", "Table", "Water", "Light",
+    "Chair", "House", "Clock", "Road", "Paper", "Shoe", "Laptop", "Bag",
+    "School", "Rain", "Sun", "Door", "Glass", "Ball", "Flower", "Bed",
+    "Window", "Bridge", "Bottle", "Camera", "Watch", "Pencil", "Fire",
+    "Train", "River", "Mountain", "Keyboard", "Mouse", "Speaker", "Hat",
+    "Jacket", "Mirror", "Fence", "Cloud", "Sky", "Ocean", "Toothbrush"
+];
+
 let rooms = {};
+
+const getRandomWords = () => {
+    let firstIndex = Math.floor(Math.random() * wordList.length);
+    let secondIndex;
+    do {
+        secondIndex = Math.floor(Math.random() * wordList.length);
+    } while (secondIndex === firstIndex);
+    return [wordList[firstIndex], wordList[secondIndex]];
+};
 
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
@@ -23,13 +41,17 @@ io.on("connection", (socket) => {
         rooms[roomId] = { 
             players: {}, 
             submissions: [], 
-            timerStarted: false 
+            timerStarted: false,
+            words: getRandomWords(),
+            chat: [] // Store chat messages
         };
 
         rooms[roomId].players[socket.id] = username;
         socket.join(roomId);
 
         io.to(roomId).emit("update-players", Object.values(rooms[roomId].players));
+        io.to(socket.id).emit("game-words", rooms[roomId].words);
+        io.to(socket.id).emit("chat-history", rooms[roomId].chat);
     });
 
     socket.on("join-room", ({ roomId, username }, callback) => {
@@ -40,19 +62,24 @@ io.on("connection", (socket) => {
             return;
         }
 
-        Object.keys(rooms[roomId].players).forEach((id) => {
-            if (rooms[roomId].players[id] === username) {
-                delete rooms[roomId].players[id];
-            }
-        });
-
         rooms[roomId].players[socket.id] = username;
         socket.join(roomId);
 
         io.to(roomId).emit("update-players", Object.values(rooms[roomId].players));
+        io.to(socket.id).emit("game-words", rooms[roomId].words);
+        io.to(socket.id).emit("chat-history", rooms[roomId].chat);
 
         if (typeof callback === "function") {
             callback({ success: true });
+        }
+    });
+
+    // Handle chat messages
+    socket.on("send-chat-message", ({ roomId, username, message }) => {
+        if (rooms[roomId]) {
+            const chatMessage = { username, message };
+            rooms[roomId].chat.push(chatMessage);
+            io.to(roomId).emit("receive-chat-message", chatMessage);
         }
     });
 
@@ -75,8 +102,8 @@ io.on("connection", (socket) => {
 
         if (!rooms[roomId].timerStarted) {
             rooms[roomId].timerStarted = true;
-            io.to(roomId).emit("start-timer", 30);
-            setTimeout(() => io.to(roomId).emit("game-over"), 30000);
+            io.to(roomId).emit("start-timer", 5);
+            setTimeout(() => io.to(roomId).emit("game-over"), 5000);
         }
     });
 
@@ -88,11 +115,9 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log("User disconnected:", socket.id);
-
         for (const roomId in rooms) {
             if (rooms[roomId].players[socket.id]) {
                 delete rooms[roomId].players[socket.id];
-
                 if (Object.keys(rooms[roomId].players).length === 0) {
                     delete rooms[roomId];
                 } else {
